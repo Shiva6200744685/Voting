@@ -1,0 +1,115 @@
+.status {
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+}
+.error {
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+.success {
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+}
+.warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+}
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;}
+    /* General styling */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f4f9;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+/* Container styling */
+.container {
+    max-width: 500px;
+    margin: 40px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Title */
+h2 {
+    color: #333;
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+/* Status messages */
+#status, #connectionStatus {
+    padding: 10px;
+    font-weight: bold;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.error { background-color: #ffdddd; color: red; }
+.success { background-color: #ddffdd; color: green; }
+.warning { background-color: #fff4cc; color: orange; }
+
+/* Candidate list */
+#candidateList {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 10px 0;
+    color: #444;
+}
+
+/* Input field */
+input[type="text"] {
+    width: 80%;
+    padding: 10px;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    margin-top: 10px;
+    font-size: 16px;
+    transition: 0.3s;
+}
+
+input[type="text"]:focus {
+    border-color: #007bff;
+    outline: none;
+}
+
+/* Buttons */
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: 0.3s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Results section */
+#result {
+    font-size: 18px;
+    font-weight: bold;
+    color: #444;
+    margin-top: 10px;
+}

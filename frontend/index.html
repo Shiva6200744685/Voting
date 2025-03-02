@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Blockchain Voting</title>
+    <!-- Update ethers.js CDN link -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        .error { color: red; padding: 10px; margin: 10px 0; }
+        .success { color: green; padding: 10px; margin: 10px 0; }
+        .warning { color: orange; padding: 10px; margin: 10px 0; }
+        #status { margin: 10px 0; }
+        button:disabled { opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <h2 style="align-items: center;">Blockchain Based Voting System</h2>
+    <div id="status"></div>
+    <div id="connectionStatus"></div>
+    
+    <div>
+        <h3>Available Candidates:</h3>
+        <div id="candidateList"></div>
+    </div>
+
+    <div>
+        <input type="text" id="candidate" placeholder="Enter candidate name">
+        <button onclick="vote()" id="voteButton">Vote</button>
+    </div>
+
+    <div>
+        <h3>Results</h3>
+        <button onclick="getVotes()" id="getVotesButton">Get Votes</button>
+        <p id="result"></p>
+    </div>
+
+    <script>
+        // Check if ethers is loaded
+        if (typeof ethers === 'undefined') {
+            console.error('Ethers.js not loaded');
+            document.getElementById('status').innerHTML = 
+                '<div class="error">Error: Required library not loaded. Please refresh the page.</div>';
+        }
+
+        const contractAddress = "0xAA62C25b0e70b0fd1bA9a7dE483ECeE72f14108d";
+        const abi = [
+            {
+                "inputs": [{"internalType": "string[]","name": "_candidates","type": "string[]"}],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "inputs": [{"internalType": "uint256","name": "","type": "uint256"}],
+                "name": "candidates",
+                "outputs": [{"internalType": "string","name": "","type": "string"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getAllCandidates",
+                "outputs": [{"internalType": "string[]","name": "","type": "string[]"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "string","name": "_candidate","type": "string"}],
+                "name": "vote",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "string","name": "_candidate","type": "string"}],
+                "name": "getVotes",
+                "outputs": [{"internalType": "uint256","name": "","type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        let provider;
+        let signer;
+        let contract;
+
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.className = type;
+            status.innerText = message;
+        }
+
+        async function initContract() {
+            try {
+                // Check if MetaMask is installed
+                if (typeof window.ethereum === 'undefined') {
+                    throw new Error("Please install MetaMask");
+                }
+
+                // Request account access
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+                // Create provider and signer
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                
+                // Create contract instance
+                contract = new ethers.Contract(contractAddress, abi, signer);
+
+                // Verify contract connection
+                try {
+                    await contract.deployed();
+                } catch (error) {
+                    throw new Error("Contract not found at specified address");
+                }
+
+                // Update connection status
+                const address = await signer.getAddress();
+                document.getElementById('connectionStatus').innerText = 
+                    `Connected: ${address.substring(0, 6)}...${address.substring(38)}`;
+
+                // Load candidates
+                await loadCandidates();
+
+                showStatus('Connected successfully', 'success');
+
+                // Setup event listeners
+                window.ethereum.on('accountsChanged', () => {
+                    window.location.reload();
+                });
+
+                window.ethereum.on('chainChanged', () => {
+                    window.location.reload();
+                });
+
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showStatus(`Connection error: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadCandidates() {
+            try {
+                if (!contract) {
+                    throw new Error("Contract not initialized");
+                }
+                const candidates = await contract.getAllCandidates();
+                const candidateList = document.getElementById('candidateList');
+                candidateList.innerHTML = candidates.map(c => `<div>${c}</div>`).join('');
+            } catch (error) {
+                console.error('Error loading candidates:', error);
+                showStatus('Error loading candidates: ' + error.message, 'error');
+            }
+        }
+
+        async function vote() {
+            if (!contract) {
+                showStatus('Please wait for contract initialization', 'error');
+                return;
+            }
+
+            const voteButton = document.getElementById('voteButton');
+            const candidateInput = document.getElementById('candidate');
+            const candidate = candidateInput.value.trim();
+
+            if (!candidate) {
+                showStatus('Please enter a candidate name', 'error');
+                return;
+            }
+
+            try {
+                voteButton.disabled = true;
+                showStatus('Processing vote...', 'warning');
+
+                // Verify candidate exists
+                const candidates = await contract.getAllCandidates();
+                if (!candidates.includes(candidate)) {
+                    throw new Error('Invalid candidate name');
+                }
+
+                // Send vote transaction
+                const tx = await contract.vote(candidate);
+                showStatus('Transaction submitted. Waiting for confirmation...', 'warning');
+                
+                // Wait for transaction confirmation
+                await tx.wait();
+                
+                showStatus('Vote successfully recorded!', 'success');
+                candidateInput.value = '';
+
+            } catch (error) {
+                console.error('Voting error:', error);
+                if (error.code === 4001) {
+                    showStatus('Transaction rejected by user', 'error');
+                } else if (error.message.includes('already voted')) {
+                    showStatus('You have already voted', 'error');
+                } else {
+                    showStatus(`Error: ${error.message}`, 'error');
+                }
+            } finally {
+                voteButton.disabled = false;
+            }
+        }
+
+        async function getVotes() {
+            if (!contract) {
+                showStatus('Please wait for contract initialization', 'error');
+                return;
+            }
+
+            const candidate = document.getElementById('candidate').value.trim();
+            
+            if (!candidate) {
+                showStatus('Please enter a candidate name', 'error');
+                return;
+            }
+
+            try {
+                const votes = await contract.getVotes(candidate);
+                document.getElementById('result').innerText = 
+                    `${candidate} has ${votes.toString()} votes`;
+            } catch (error) {
+                console.error('Error getting votes:', error);
+                showStatus(`Error getting votes: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            try {
+                await initContract();
+            } catch (error) {
+                console.error('Initialization failed:', error);
+                showStatus('Failed to initialize application', 'error');
+            }
+        });
+    </script>
+</body>
+</html>
